@@ -85,16 +85,19 @@ def defind(phenny, input):
   phenny.define['defs']   = []
   phenny.define['selected']={}
   
-  word = random.choice(dico.keys())
+  while True:
+    word = random.choice(dico.keys())
+    if len(word.split(" "))<3:
+      break
   phenny.define['word']=word
-  phenny.say("Do you all know what a%s %s is? Quick, send me your .def[inition] via private message!" % ((word[0] in ["A","E","I","O"]) and "n" or "",word))
+  phenny.say("Do you all know what (a%s) %s is? Quick, send me your .def[inition] via private message!" % ((word[0] in ["A","E","I","O"]) and "n" or "",word))
   phenny.define['defs'] = [[dico[word], "Wiktionary"]]
   phenny.define['status'] = DEFINE_DEFINE
   time.sleep(60)
   defs = phenny.define['defs'][:]
   n=1
   ordered = []
-  phenny.say("Let's see, what could a%s %s be?." % ((word[0] in ["A","E","I","O"]) and "n" or "",word))
+  phenny.say("Let's see, what could (a%s) %s be?." % ((word[0] in ["A","E","I","O"]) and "n" or "",word))
   while len(defs)>0:
     df = random.choice(defs)
     defs.remove(df)
