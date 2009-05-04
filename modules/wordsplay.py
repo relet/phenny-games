@@ -124,7 +124,7 @@ def uniq(seq):
 
 def bestwords(table, size):
   all = allwords(table, size)
-  best = []
+  best = [] 
   top = 0
   for w in all:
     if len(w)>top:
@@ -145,6 +145,7 @@ def setup(self):
     self.wordsplay={}
     self.wordsplay['run']=False
     self.wordsplay['scores']={}
+    self.wordsplay['best']=None
   try:
     yamldata = open("jumble.yaml",'r')
     self.jumble = yaml.load(yamldata.read())
@@ -174,8 +175,18 @@ def initthree(phenny, input):
 def drawtable(phenny, input):
   table = phenny.wordsplay['table']
   size  = phenny.wordsplay['size']
+  best  = ('best' in phenny.wordsplay) and phenny.wordsplay['best'] and phenny.wordsplay['best'][:]
   for i in range(0,size*size,size):
-    phenny.say('| '+reduce(lambda x,y:x+" "+y, table[i:i+size])+' |')
+    hint = "  "
+    if best:
+      mlen = len(best)>0 and len(best[0])
+      counter = 0
+      if mlen:
+        while len(best)>0 and len(best[0])==mlen:
+          counter += 1
+          best.pop(0)
+        hint += "%i letters: %i" % (mlen, counter)
+    phenny.say('| '+reduce(lambda x,y:x+" "+y, table[i:i+size])+' |'+hint)
 
 def weightedChoice(dic):
   select = random()
@@ -302,9 +313,14 @@ def wordsplay(phenny, input):
     drawtable(phenny, input)
     return
   size = 4
+  hints = False 
   try:
-    cmd, par = input.split(" ")
+    data = input.split(" ")
+    par = data[1]
+    if data[1]=="hints":
+      hints = True
     size = int(par)
+    hints = data[2]=="hints"
   except:
     pass
   if size<3 or size>7:
@@ -313,6 +329,9 @@ def wordsplay(phenny, input):
   phenny.wordsplay['size']=size    
   gentable(phenny, input)  
   initround(phenny,input)
+  best = bestwords(phenny.wordsplay['table'], size) 
+  if hints:
+    phenny.wordsplay['best']=best 
   drawtable(phenny, input)
   time.sleep(120)
   phenny.say("1 minute left...")
@@ -332,7 +351,6 @@ def wordsplay(phenny, input):
   for entry in ordered:
     msg += entry[0]+": "+str(entry[1][1])+" (total: "+str(total[entry[0]])+"); "
   phenny.say("Round is over."+msg)
-  best = bestwords(phenny.wordsplay['table'], size)  
   lbest = (len(best)>0) and len(best[0]) or 0
   if lbest == pbest:
     phenny.say("PERFECT!")
@@ -340,6 +358,7 @@ def wordsplay(phenny, input):
     if len(best)>0:
       etc = (len(best)>3) and "up to "+str(len(best))+" words with "+str(lbest)+" letters" or str(lbest)+" letters"
       phenny.say("Longer words were: "+reduce(lambda x,y:x+"; "+y, best[:3])+" ("+etc+")")
+  phenny.wordsplay['best']=None
   yamldump = open("wordsplay.yaml",'w') #save teh permanent scores
   yamldump.write(yaml.dump(phenny.wordsplay))
   yamldump.close()  

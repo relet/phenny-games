@@ -181,9 +181,9 @@ def hplay(phenny, input):
   elif where == "last":
     insertpos = len(table)
   elif where == "before":
-    insertpos = min(len(table)-1,max(0,pid-1))
+    insertpos = min(len(table),max(0,pid-1))
   elif where == "after":
-    insertpos = min(len(table)-1,max(0,pid))
+    insertpos = min(len(table),max(0,pid))
   if insertpos == -1:
     phenny.say("Syntax: .card #(on hand) first|last|before #(on table)|after #(on table)")
     return
@@ -229,6 +229,8 @@ def deal(phenny, nick, num):
     phenny.bot.msg(nick, str(len(hand))+": "+card[1])
 
 def hcall(phenny, input):
+  if not phenny.history['run']:
+    return
   nick = input.nick
   if phenny.history['players'][phenny.history['current']] != nick:
     phenny.say("Not your turn, "+nick)

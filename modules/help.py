@@ -1,4 +1,5 @@
 topics = {
+  "defind"   :"Identify the correct definition among all given suggestions. Commands: .defind .def .select",
   "food"     :"Food is important, when you spend your time in the channels. Commands: food",
   "history"  :"A multiplayer game. Order historical dates on a timeline. More: hrules Commands: .history .hrun .card .cards .call .hquit",
   "jumble"   :"Descramble English words. Commands: .jumble .jtop",
@@ -45,6 +46,9 @@ commands = {
   ".encarta" :"Looks up a word in the Encarta",
   ".dict"    :"Looks up a word in encarta and wordnet.",
   ".check"   :"Checks if a word is contained in the internal (YAWL) wordlist and on morewords.com",
+  ".defind"  :"Starts a game of defind",
+  ".def"     :"Submits a definition for the currently proposed word. Please do so via private message to the bot",
+  ".select"  :"Selects the one definition which you consider to be correct.",
 }
 def help(phenny, input):
   words = input.split()

@@ -27,6 +27,8 @@ def unstamp(phenny):
 
 def shufflePlayers(phenny):
   players = phenny.doodle['players']
+  if len(players)<2:
+    return
   players = players[1:]+[players[0]]
   phenny.doodle['players']=players
 
@@ -145,7 +147,7 @@ def resolveDoodle(phenny):
     score2 = good and 1 or -1
     str = "%s found it %s%s" % (carder, suggestion, good and ". " or " - NOT! ")
     if tagger:
-      str += "%s is %s. (scoring %s,%s)" % (tagger, good and "right" or "wrong", score1, score2)
+      str += "%s is %s. (both scoring %s)" % (tagger, good and "right" or "wrong", score1)
       phenny.doodle['scores'][tagger]+=score2
     else:
       str += "And nobody agreed. (scoring %s)" % (score1)
@@ -167,12 +169,14 @@ def dthread(phenny):
         phenny.doodle['status'] = STATUS_WAITTOPIC
       elif status == STATUS_TOPICSET: #waiting for cards to be dealt.
         phenny.doodle['tags']=[]
+        nobodyPlayed(phenny)
         phenny.say("You may play your cards now!")
         phenny.doodle['status'] = STATUS_WAITCARDS
       elif status == STATUS_CARDSPLAYED: #getting ready to rumble.
         phenny.say("Thank you all. Ready?")
         phenny.doodle['status'] = STATUS_WAIT3SEC
       elif status == STATUS_TAGGING:     #rumble!
+        nobodyPlayed(phenny)
         phenny.say("Go! Enter the code to the right of a card to .tag it, or .none")
         phenny.say(cardsWithTags(phenny))
       elif status == STATUS_RESOLVE:     #stop rumbling!
@@ -276,12 +280,15 @@ def randomTag(phenny):
     return randomTag(phenny)
   return tag
 
+def nobodyPlayed(phenny):
+  phenny.doodle['played']={}
+
 def checkAllPlayed(phenny, nextstatus):
   players = phenny.doodle['players']
   for player in players:
     if not player in phenny.doodle['played']:
       return False
-  phenny.doodle['played']={}
+  nobodyPlayed(phenny) 
   phenny.doodle['status']=nextstatus
   unstamp(phenny)
 
