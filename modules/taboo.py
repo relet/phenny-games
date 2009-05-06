@@ -19,12 +19,14 @@ commonwords = []
 words = bz2.BZ2File("wordlist/wiktionary.txt.bz2","r")
 index = None
 for line in words:
-  if index:
-    if not ':' in index:
-      dico[index]=line.strip()
-    index = None
-  else:
-    index = re.sub('[^A-Z: ]', '', line.strip().upper())
+  line = line.strip()
+  if line[0]=='?':
+    index = line[1:].upper()
+    if re.match('[^A-Z ]',index):
+      index=None
+  elif line[0]=="!":
+    if index:
+      dico[index]=line[1:]
 
 def uniq(seq):
   "eliminates duplicates from a list"
@@ -87,17 +89,17 @@ def defind(phenny, input):
   
   while True:
     word = random.choice(dico.keys())
-    if len(word.split(" "))<3:
+    if len(word.split(" "))<3 and dico[word].strip():
       break
   phenny.define['word']=word
-  phenny.say("Do you all know what (a%s) %s is? Quick, send me your .def[inition] via private message!" % ((word[0] in ["A","E","I","O"]) and "n" or "",word))
+  phenny.say("Do you all know what %s means? Quick, send me your .def[inition] via private message!" % word)
   phenny.define['defs'] = [[dico[word], "Wiktionary"]]
   phenny.define['status'] = DEFINE_DEFINE
-  time.sleep(60)
+  time.sleep(120)
   defs = phenny.define['defs'][:]
   n=1
   ordered = []
-  phenny.say("Let's see, what could (a%s) %s be?." % ((word[0] in ["A","E","I","O"]) and "n" or "",word))
+  phenny.say("Let's see, what could %s mean?." % word)
   while len(defs)>0:
     df = random.choice(defs)
     defs.remove(df)
@@ -107,7 +109,7 @@ def defind(phenny, input):
   phenny.define['defs']=ordered
   phenny.define['status'] = DEFINE_SELECT
   phenny.say("Now, .select the definition which you would expect to be the official one.")
-  time.sleep(30)
+  time.sleep(60)
   phenny.define['status'] = DEFINE_NONE
   phenny.say("Very well, let's see who has tricked whom today.")
   followers = {}
@@ -127,7 +129,7 @@ def defind(phenny, input):
       else:
         msg += " - %i were convinced." % len(fools)
       if df[1]!="Wiktionary":
-        phenny.define['scores'][df[1]]=phenny.define['scores'].get(df[1],0) + len(fools)*2
+        phenny.define['scores'][df[1]]=phenny.define['scores'].get(df[1],0) + len(fools)*3
       else:
         for fool in fools:
           phenny.define['scores'][fool]=phenny.define['scores'].get(fool,0) + 1
@@ -147,8 +149,10 @@ def definedef(phenny, input):
   defs = phenny.define['defs']
   for df in defs:
     if input.nick==df[1]:
-      phenny.say("You have already submitted a definition, %s" % input.nick)
-      return
+      #phenny.say("You have already submitted a definition, %s" % input.nick)
+      #return
+      defs.remove(df)
+      break
   df = input[input.find(" ")+1:]
   defs.append([df, input.nick])
   phenny.say("Thank you, %s" % input.nick)
@@ -159,9 +163,9 @@ definedef.priority = 'low'
 def selectdef(phenny, input):
   if not phenny.define['status']==DEFINE_SELECT:
     return
-  if input.nick in phenny.define['selected']:
-    phenny.say("No changing minds, %s." % input.nick)
-    return
+  #if input.nick in phenny.define['selected']:
+  #  phenny.say("No changing minds, %s." % input.nick)
+  #  return
   try:
     par = input[input.find(" ")+1:]
     pos = int(par)
@@ -170,6 +174,7 @@ def selectdef(phenny, input):
       #intentionally no message provided
       return
     phenny.define['selected'][input.nick]=pos
+    phenny.say("A wise choice, %s" % input.nick)
   except:
     phenny.say("That's nothing you could choose from, %s." % input.nick)
     return
