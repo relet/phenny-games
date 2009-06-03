@@ -376,7 +376,7 @@ def wordsplay(phenny, input):
       if word in phenny.wordsplay['used']:
         best.remove(word)
   if len(best)>0:
-    etc = (len(best)>5) and "(and up to "+str(len(best))+" words with "+str(lbest)+" letters)" or ""
+    etc = (len(best)>5) and "("+str(len(best))+" words with "+str(lbest)+" letters or more)" or ""
     phenny.say("Longest remaining words: "+reduce(lambda x,y:x+"; "+y, best[:5])+" "+etc)
   phenny.wordsplay['best']=None
   yamldump = open("wordsplay.yaml",'w') #save teh permanent scores
