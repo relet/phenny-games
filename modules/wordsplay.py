@@ -110,7 +110,21 @@ def allwords(table, size):
   for i in range(0,s2):
     c = table[i]
     all.extend(findall(table, used, i, '', nb[size]))
-  return all
+  buckets = {}
+  lmax = 0
+  for word in all:
+    l = len(word)
+    if l>lmax:
+      lmax = l
+    if l in buckets:
+      buckets[l].append(word)
+    else:
+      buckets[l]=[word]
+  buckets['max']=lmax
+  for lw in buckets.keys():
+    if not lw == 'max':
+      buckets[lw]=uniq(buckets[lw])
+  return buckets
   
 def uniq(seq):
   "eliminates duplicates from a list"
@@ -122,17 +136,15 @@ def uniq(seq):
   else:
     return [seq[0]]+rest
 
-def bestwords(table, size):
-  all = allwords(table, size)
-  best = [] 
-  top = 0
-  for w in all:
-    if len(w)>top:
-      top = len(w)
-      best = [w]
-    elif len(w)==top:
-      best.append(w)
-  return uniq(best)
+#def bestwords(table, size):
+#  all = allwords(table, size)
+#  best = None
+#  lbest = 0
+#  for l in all.keys():
+#    if l>lbest:
+#      lbest=l
+#      best=all[l]
+#  return uniq(best)
     
 action = chr(1)+"ACTION "
 afin   = chr(1)
@@ -175,17 +187,14 @@ def initthree(phenny, input):
 def drawtable(phenny, input):
   table = phenny.wordsplay['table']
   size  = phenny.wordsplay['size']
-  best  = ('best' in phenny.wordsplay) and phenny.wordsplay['best'] and phenny.wordsplay['best'][:]
+  best  = ('best' in phenny.wordsplay) and phenny.wordsplay['best'] #and phenny.wordsplay['best'].clone()
   for i in range(0,size*size,size):
     hint = "  "
-    if best:
-      mlen = len(best)>0 and len(best[0])
-      counter = 0
-      if mlen:
-        while len(best)>0 and len(best[0])==mlen:
-          counter += 1
-          best.pop(0)
-        hint += "%i letters: %i" % (mlen, counter)
+    if 'hints' in phenny.wordsplay:
+      lmax = best['max']
+      lcur = lmax - i/size
+      if lcur>2: 
+        hint += "%i letters: %i" % (lcur, (lcur in best) and len(best[lcur]) or 0)
     phenny.say('| '+reduce(lambda x,y:x+" "+y, table[i:i+size])+' |'+hint)
 
 def weightedChoice(dic):
@@ -329,9 +338,12 @@ def wordsplay(phenny, input):
   phenny.wordsplay['size']=size    
   gentable(phenny, input)  
   initround(phenny,input)
-  best = bestwords(phenny.wordsplay['table'], size) 
+  solution = allwords(phenny.wordsplay['table'], size) 
+  print solution
+  phenny.wordsplay['hints']=None
   if hints:
-    phenny.wordsplay['best']=best 
+    phenny.wordsplay['hints']=True
+  phenny.wordsplay['best']=solution
   drawtable(phenny, input)
   time.sleep(120)
   phenny.say("1 minute left...")
@@ -351,13 +363,22 @@ def wordsplay(phenny, input):
   for entry in ordered:
     msg += entry[0]+": "+str(entry[1][1])+" (total: "+str(total[entry[0]])+"); "
   phenny.say("Round is over."+msg)
-  lbest = (len(best)>0) and len(best[0]) or 0
+  lbest = solution['max']
   if lbest == pbest:
     phenny.say("PERFECT!")
-  elif lbest > pbest:
-    if len(best)>0:
-      etc = (len(best)>3) and "up to "+str(len(best))+" words with "+str(lbest)+" letters" or str(lbest)+" letters"
-      phenny.say("Longer words were: "+reduce(lambda x,y:x+"; "+y, best[:3])+" ("+etc+")")
+  best = solution[lbest]
+  for word in best[:]:
+    if word in phenny.wordsplay['used']:
+      best.remove(word)
+  while len(best)<5:
+    lbest -= 1
+    best.extend(solution[lbest])
+    for word in best[:]:
+      if word in phenny.wordsplay['used']:
+        best.remove(word)
+  if len(best)>0:
+    etc = (len(best)>5) and "(and up to "+str(len(best))+" words with "+str(lbest)+" letters)" or ""
+    phenny.say("Longest remaining words: "+reduce(lambda x,y:x+"; "+y, best[:5])+" "+etc)
   phenny.wordsplay['best']=None
   yamldump = open("wordsplay.yaml",'w') #save teh permanent scores
   yamldump.write(yaml.dump(phenny.wordsplay))
@@ -483,6 +504,31 @@ def threeguess(phenny, input):
     yamldump.write(yaml.dump(phenny.three))
     yamldump.close()
 
+def checkBested(phenny, input, nick):
+  pscore = 0
+  best = phenny.wordsplay['best']
+  lbest = best['max']
+  prev = phenny.wordsplay['round']
+  if nick in prev:
+    pscore = prev[nick][0]
+  if pscore == lbest:
+    remains = False
+    while lbest > 1 and remains==False:
+      if lbest in best:
+        for word in best[lbest]:
+          if not word in phenny.wordsplay['used']:
+            remains = True
+            break
+      if not remains:
+        lbest -= 1
+    if len(input)==lbest:
+      old = phenny.wordsplay['round'].get(nick,(3,0,0)) #old word len, old score, old bonus
+      bonus = old[2] + 1
+      score = old[1] + 1
+      phenny.wordsplay['used'].append(input)
+      phenny.wordsplay['round'][nick]=(old[0],score,bonus)
+      phenny.say(nick+" scores "+str(score)+" points with the bonus word "+input)
+
 def wguess(phenny,input):
   jguess(phenny,input) #we don't have to check regexes twice.
   threeguess(phenny,input) #nor have we to check regexes thrice.
@@ -493,10 +539,11 @@ def wguess(phenny,input):
   if not hasword(input, wordlist):
     #phenny.say("DEBUG: not in list")
     return
+  if not bettered(phenny, input, nick):
+    checkBested(phenny, input, nick)
+    return
   if guessedBefore(phenny, input):
     #phenny.say("DEBUG: guessed before")
-    return
-  if not bettered(phenny, input, nick):
     return
   if not checkWord(phenny,input):
     #phenny.say("DEBUG: not on table")
