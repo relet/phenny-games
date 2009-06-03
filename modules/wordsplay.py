@@ -339,7 +339,6 @@ def wordsplay(phenny, input):
   gentable(phenny, input)  
   initround(phenny,input)
   solution = allwords(phenny.wordsplay['table'], size) 
-  print solution
   phenny.wordsplay['hints']=None
   if hints:
     phenny.wordsplay['hints']=True
