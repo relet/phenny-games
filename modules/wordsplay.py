@@ -430,10 +430,10 @@ def threehof(phenny,input):
 threehof.commands=["3hof","3top","threehof","threetop"]
 threehof.priority='low'
 
-def guessedBefore(phenny,input):
+def guessedBefore(phenny,input,exact=False):
   guesses = phenny.wordsplay['used']
   for word in guesses:
-    if input in word:
+    if (exact and (input == word)) or (not exact and (input in word)):
       return True
   return False
 
@@ -505,6 +505,8 @@ def threeguess(phenny, input):
     yamldump.close()
 
 def checkBested(phenny, input, nick):
+  if guessedBefore(phenny, input, exact=True):
+    return
   pscore = 0
   best = phenny.wordsplay['best']
   lbest = best['max']
@@ -542,11 +544,11 @@ def wguess(phenny,input):
   if not checkWord(phenny,input):
     #phenny.say("DEBUG: not on table")
     return
-  if guessedBefore(phenny, input):
-    #phenny.say("DEBUG: guessed before")
-    return
   if not bettered(phenny, input, nick):
     checkBested(phenny, input, nick)
+    return
+  if guessedBefore(phenny, input):
+    #phenny.say("DEBUG: guessed before")
     return
   old = phenny.wordsplay['round'].get(nick,(3,0,0)) #old word len, old score, old bonus
   bonus = old[2]+max(len(input)-old[0]-1,0)
