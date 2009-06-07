@@ -189,7 +189,7 @@ def drawtable(phenny, input):
   size  = phenny.wordsplay['size']
   best  = ('best' in phenny.wordsplay) and phenny.wordsplay['best'] #and phenny.wordsplay['best'].clone()
   for i in range(0,size*size,size):
-    hint = "  "
+    hint = " "
     if 'hints' in phenny.wordsplay:
       lmax = best['max']
       lcur = lmax - i/size
@@ -371,7 +371,8 @@ def wordsplay(phenny, input):
       best.remove(word)
   while len(best)<5:
     lbest -= 1
-    best.extend(solution[lbest])
+    if lbest in solution:
+      best.extend(solution[lbest])
     for word in best[:]:
       if word in phenny.wordsplay['used']:
         best.remove(word)
@@ -538,14 +539,14 @@ def wguess(phenny,input):
   if not hasword(input, wordlist):
     #phenny.say("DEBUG: not in list")
     return
-  if not bettered(phenny, input, nick):
-    checkBested(phenny, input, nick)
+  if not checkWord(phenny,input):
+    #phenny.say("DEBUG: not on table")
     return
   if guessedBefore(phenny, input):
     #phenny.say("DEBUG: guessed before")
     return
-  if not checkWord(phenny,input):
-    #phenny.say("DEBUG: not on table")
+  if not bettered(phenny, input, nick):
+    checkBested(phenny, input, nick)
     return
   old = phenny.wordsplay['round'].get(nick,(3,0,0)) #old word len, old score, old bonus
   bonus = old[2]+max(len(input)-old[0]-1,0)
