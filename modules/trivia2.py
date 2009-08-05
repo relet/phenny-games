@@ -14,7 +14,7 @@ import yaml, bz2
 useragent = "Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.0.4) Gecko/2008111317 Ubuntu/8.04 (hardy) Firefox/3.0.4"
 url = "http://en.wikipedia.org/wiki/Special:Random"
 headers = {'User-Agent:': useragent }
-config = "./trivia.yaml"
+config = "/home/relet.net/.phenny/trivia.yaml"
 
 re_trivial = "'''+(.*?)'''+[^\.\n]*? (is|was|are|were|will be|can be|consists of) (.*?)\."
 cp_trivial = re.compile(re_trivial)
@@ -263,7 +263,7 @@ def scores(phenny, input):
   ordered = sorted(scores.items(), key=itemgetter(1), reverse=True)
   msg = "This round: "
   for pair in ordered:
-    msg += pair[0]+": "+str(pair[1])+" -- "
+    msg += pair[0]+": "+str(pair[1])+"; "
   phenny.say(msg)  
 scores.commands = ['scores', 'score']
 scores.priority = 'low'
@@ -272,9 +272,9 @@ scores.thread=False
 def hof(phenny, input):
   scores = phenny.trivia['scores']
   ordered = sorted(scores.items(), key=itemgetter(1), reverse=True)
-  msg = "Total scores: "
+  msg = "Total trivia scores: "
   for pair in ordered[0:10]:
-    msg += pair[0]+": "+str(pair[1])+" -- "
+    msg += pair[0]+": "+str(pair[1])+"; "
   phenny.say(msg)  
 hof.commands = ['hof', 'top']
 hof.priority = 'low'

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 """
 wordsplay.py - Phenny Wordsplay Module
 Author: Thomas Hirsch, http://relet.net
@@ -73,11 +74,14 @@ for i in range(3,8):
 
 wordlist={} #dictionaries are so much faster to lookup in
 wordbits={}
+sixteens={}
   
 def addword(word, wordlist):
   if len(word)<3: 
     return 
   wordlist[word]=True
+  if len(word)==16:
+    sixteens[word]=True
   for i in range(1,len(word)):
     wordbits[word[:i]]=True
 
@@ -209,11 +213,41 @@ def weightedChoice(dic):
 def randomchar():
   return weightedChoice(letters)
 
-def gentable(phenny, input):
-  size = phenny.wordsplay['size']
-  table = reduce(lambda x,y:x+y, [randomchar() for i in range(0,size*size)])
+def genmaxtable(phenny):
+  word = choice(sixteens.keys())
+  while True:
+    table = ["."]*16
+    rest = word
+    x = randint(0,3)
+    y = randint(0,3)
+    while len(rest)>0:
+      next = False
+      for i in range(100):
+        nx = min(3,max(0,x + randint(-1,1)))
+        ny = min(3,max(0,y + randint(-1,1)))
+        if table[ny*4 + nx]==".":
+          x = nx
+          y = ny
+          next = True
+          break
+      if not next:
+        print "failed: "+reduce(lambda x,y:x+y,table)
+        break
+      table[y*4+x]=rest[0]
+      rest=rest[1:]
+    if len(rest)==0:
+      break
+  table = reduce(lambda x,y:x+y,table)
+  print table
   phenny.wordsplay['table']=table
 
+def gentable(phenny, input):
+  size = phenny.wordsplay['size']
+  if size==4 and randint(0,99)==0:
+    return genmaxtable(phenny)
+  table = reduce(lambda x,y:x+y, [randomchar() for i in range(0,size*size)])
+  phenny.wordsplay['table']=table
+  
 def scramble(s):
   for i in range(0,100):
     a = randint(0,len(s)-1)
@@ -322,14 +356,11 @@ def wordsplay(phenny, input):
     drawtable(phenny, input)
     return
   size = 4
-  hints = False 
+  hints = True
   try:
     data = input.split(" ")
     par = data[1]
-    if data[1]=="hints":
-      hints = True
     size = int(par)
-    hints = data[2]=="hints"
   except:
     pass
   if size<3 or size>7:

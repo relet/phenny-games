@@ -22,7 +22,7 @@ for line in words:
   line = line.strip()
   if line[0]=='?':
     index = line[1:].upper()
-    if re.match('[^A-Z ]',index):
+    if len(re.findall('[^A-Z ]',index))>0:
       index=None
   elif line[0]=="!":
     if index:
@@ -272,7 +272,7 @@ taboopass.priority='low'
 
 def thof(phenny,input):
   total = phenny.taboo['scores']
-  msg = 'Total scores: '
+  msg = 'Total \'taboo\' scores: '
   ordered = sorted(total.items(), key=itemgetter(1), reverse = True)
   for entry in ordered[:10]:
     msg += entry[0]+": "+str(entry[1])+"; "
