@@ -9,6 +9,7 @@ topics = {
   "words"    :"Find words in a grid of letters. Commands: .words .wtop",
   "lookup"   :"You can look up words using the commands: .wiki .dict .encarta .wordnet .check",
   "three"    :"Find words containing given consonants: .three .3top .3reset",
+  "bend"     :"Find words beginning and ending with the given letters: .bend .btop .breset",
 }
 commands = {
   ".three"   :"A sequence of 3-5 consonants. Find a word starting with these in order or reverse order. Syntax: .three #number where #number is the number of consonants to play with.",
@@ -25,6 +26,9 @@ commands = {
   ".jtop"    :"Displays the current high score list for jumble.",
   ".3top"    :"Displays the current high score list for three.",
   ".3reset"  :"Ends the current game of three.",
+  ".bend"    :"Displays a new word to complete. Type your guess. After the last correct guess, you have 30 seconds to improve.",
+  ".btop"    :"Display the high score list for bend",
+  ".breset"  :"Solve the last bend puzzle.",
   ".load"    :"Loads a revolver. Parameters '.load #b #c' where #b is a number of bullets, #c a number of chambers in the cylinder.",
   ".spin"    :"Spins the cylinder to a random position.",
   ".die"     :"Pulls the trigger. You may die if a bullet is in the current chamber.",

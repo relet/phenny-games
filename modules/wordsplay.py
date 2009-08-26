@@ -176,6 +176,15 @@ def setup(self):
     self.three={}
     self.three['run']=False
     self.three['scores']={}
+  try:
+    yamldata = open("bend.yaml",'r')
+    self.bend = yaml.load(yamldata.read())
+  except:
+    self.bend={}
+    self.bend['run']=False
+    self.bend['override']=time.time()-10
+    self.bend['lastvalue']=0
+    self.bend['scores']={}
 
 def initround(phenny, input):
   phenny.wordsplay['round']={}
@@ -187,6 +196,9 @@ def initjumble(phenny, input):
 
 def initthree(phenny, input):
   phenny.three['run']=True
+
+def initbend(phenny, input):
+  phenny.bend['run']=True
 
 def drawtable(phenny, input):
   table = phenny.wordsplay['table']
@@ -278,6 +290,9 @@ def cutthree(word, num, reverse):
     return ret
   return False
 
+def cutbend(word, num):
+  return word[:num], word[-num:]
+
 def genthree(phenny, input):
   clue = False
   num = 3
@@ -297,6 +312,24 @@ def genthree(phenny, input):
       reverse = c+reverse
     clue = reverse
   phenny.three['clue']=clue
+
+def genbend(phenny, input):
+  clue = False
+  num = 3
+  try:
+    num = int(input.split(" ")[1])
+    num = max(2,min(num,5))
+  except:
+    pass
+  word = "FAIL"
+  while True:
+    pos = randint(0,len(wordlist)-1)
+    word = wordlist.keys()[pos]
+    if len(word)>6:
+      break
+  phenny.bend['solve']=word
+  clue = cutbend(word,num)
+  phenny.bend['clue']=clue
 
 def checkRec(table, used, input, lastpos, ntable):
   #print "checkRec ",input,lastpos
@@ -350,6 +383,17 @@ def three(phenny,input):
 three.commands=["three"]
 three.priority="low"
 three.thread=False
+
+def bend(phenny,input):
+  if phenny.bend['run']:
+    phenny.say("Find a word beginning with %s and ending in %s: " % phenny.bend['clue'])
+    return
+  genbend(phenny,input)
+  initbend(phenny,input)
+  phenny.say("Find a word beginning with %s and ending in %s: " % phenny.bend['clue'])
+bend.commands=["bend"]
+bend.priority="low"
+bend.thread=False
 
 def wordsplay(phenny, input): 
   if phenny.wordsplay['run']:
@@ -461,6 +505,16 @@ def threehof(phenny,input):
 threehof.commands=["3hof","3top","threehof","threetop"]
 threehof.priority='low'
 
+def bendhof(phenny,input):
+  total = phenny.bend['scores']
+  msg = "Total 'bend' scores: " 
+  ordered = sorted(total.items(), key=itemgetter(1), reverse=True)
+  for entry in ordered[:10]:
+    msg += entry[0]+": "+str(entry[1])+"; "
+  phenny.say(msg)
+bendhof.commands=["bhof","btop","bendhof","bendtop"]
+bendhof.priority='low'
+
 def guessedBefore(phenny,input,exact=False):
   guesses = phenny.wordsplay['used']
   for word in guesses:
@@ -491,6 +545,12 @@ def wouldthree(clue, word):
   for c in word:
     reverse = c+reverse 
   if cutthree(reverse,len(clue),True)==clue:
+    return True
+  return False
+
+def wouldbend(clue, word):
+  l = len(clue[0])
+  if word[:l]==clue[0] and word[-l:]==clue[1]:
     return True
   return False
 
@@ -534,6 +594,40 @@ def threeguess(phenny, input):
     yamldump = open("three.yaml",'w') #save teh permanent scores
     yamldump.write(yaml.dump(phenny.three))
     yamldump.close()
+    
+def bendguess(phenny, input):
+  override = False
+  if not phenny.bend['run']:
+    now = time.time()
+    if phenny.bend['override'] + 30 < now:
+      return
+    override = True
+  nick = input.nick
+  input = input.upper().strip()
+  if not input in wordlist:
+    return
+  clue = phenny.bend['clue']
+  if wouldbend(clue, input):
+    if override and len(phenny.bend['lastword'])>=len(input):
+      return
+    phenny.bend['run']=False
+    phenny.bend['override']=time.time()
+    scores = phenny.bend['scores']
+    value = max(0, len(input) - len(clue[0])*2)
+    scores[nick]=scores.get(nick,0)+value
+    if override:
+      other = phenny.bend['lastplayer']
+      rvalue = max(0, len(phenny.bend['lastword']) - len(clue[0])*2)
+      scores[other]=scores.get(other,0)-rvalue
+      phenny.say("%s bests %s with %s and grabs all %i points for a total of %s. %s" % (nick, other, input, value, scores[nick], choice(("Ha-ha!", "Bummer!", "Supersized!", "teh pwnage!!1"))))
+    else:
+      phenny.say(input+" is correct and "+nick+" scores "+str(value)+" points for a total of "+str(scores[nick])+". "+choice(("Superb.","Excellent.","Oh wow!","Terrific.","Yeah.")))
+    phenny.bend['lastvalue']  = value
+    phenny.bend['lastplayer'] = nick
+    phenny.bend['lastword']   = input
+    yamldump = open("bend.yaml",'w') #save teh permanent scores
+    yamldump.write(yaml.dump(phenny.bend))
+    yamldump.close()
 
 def checkBested(phenny, input, nick):
   if guessedBefore(phenny, input, exact=True):
@@ -563,8 +657,9 @@ def checkBested(phenny, input, nick):
       phenny.say(nick+" scores "+str(score)+" points with the bonus word "+input)
 
 def wguess(phenny,input):
-  jguess(phenny,input) #we don't have to check regexes twice.
+  jguess(phenny,input)     #we don't have to check regexes twice.
   threeguess(phenny,input) #nor have we to check regexes thrice.
+  bendguess(phenny,input)  #nor have we to check regexes fource.
   if not phenny.wordsplay['run']:
     return
   nick = input.nick
@@ -598,7 +693,14 @@ def threereset(phenny, input):
     phenny.three['solve']=""
 threereset.commands=["3reset","threereset"]
 threereset.priority='low'
-  
+
+def bendreset(phenny, input):
+  if phenny.bend['run']==True:
+    phenny.bend['run']=False
+    phenny.say("As you wish. One possible solution was "+phenny.bend['solve']) 
+    phenny.bend['solve']=""
+bendreset.commands=["breset","bendreset"]
+bendreset.priority='low'
 
 def striphtml(str):
   ret = re.sub('\<.*?\>','',str)
