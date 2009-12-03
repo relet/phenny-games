@@ -185,6 +185,22 @@ def setup(self):
     self.bend['override']=time.time()-10
     self.bend['lastvalue']=0
     self.bend['scores']={}
+  try:
+    yamldata = open("bank.yaml",'r')
+    self.bank = yaml.load(yamldata.read())
+  except:
+    self.bank={}
+    self.bank['run']=False
+    self.bank['override']=time.time()-10
+    self.bank['lastvalue']=0
+    self.bank['scores']={}
+  try:
+    yamldata = open("hangman.yaml",'r')
+    self.hang = yaml.load(yamldata.read())
+  except:
+    self.hang={}
+    self.hang['run']=False
+    self.hang['scores']={}
 
 def initround(phenny, input):
   phenny.wordsplay['round']={}
@@ -199,6 +215,12 @@ def initthree(phenny, input):
 
 def initbend(phenny, input):
   phenny.bend['run']=True
+
+def initbank(phenny, input):
+  phenny.bank['run']=True
+
+def inithang(phenny, input):
+  phenny.hang['run']=True
 
 def drawtable(phenny, input):
   table = phenny.wordsplay['table']
@@ -331,6 +353,70 @@ def genbend(phenny, input):
   clue = cutbend(word,num)
   phenny.bend['clue']=clue
 
+def genbank(phenny, input):
+  clue = False
+  num = 5
+  try:
+    num = int(input.split(" ")[1])
+    num = max(2,min(num,13))
+  except:
+    pass
+  bank = []
+  while True:
+    while len(bank)<num:
+      letter = randomchar()
+      if letter in bank:
+        continue
+      bank += letter
+    bank.sort()
+    bank = reduce(lambda x,y:x+y, bank)
+    if solvebank(phenny, bank):
+      break
+    else:
+      bank = []
+  phenny.bank['bank']=bank
+
+def genhangline(phenny):
+  word = phenny.hang['word']
+  guessed = phenny.hang['guessed']
+  fails = phenny.hang['fails']
+  
+  men = [
+    ("       ("), #1
+    ("|      ("), #2
+    ("|-     ("), #3
+    ("|-    c("), #4
+    ("|-o   c("), #5
+    ("|-o`  c("), #6
+    ("|-o>  c("), #7
+    ("|-o>- c("), #8
+    ("|-o>-'c("), #9
+    ("|-o>-<c("), #10
+    ("|-o<-< ("), #11
+  ]
+  line  = men[fails] +"]  "
+  
+  for letter in word:
+    if letter in guessed:
+      line += letter+" "
+    else:
+      line += "_ "
+  return line
+
+def genhang(phenny, input):
+  word = "FAIL"
+  while True:
+    pos = randint(0,len(wordlist)-1)
+    word = wordlist.keys()[pos]
+    if len(word)>6:
+      break
+  phenny.hang['word']=word
+  phenny.hang['left']=len(word)
+  phenny.hang['guessed']={}
+  phenny.hang['bought']={}
+  phenny.hang['correct']={}
+  phenny.hang['fails']=0
+  
 def checkRec(table, used, input, lastpos, ntable):
   #print "checkRec ",input,lastpos
   if len(input)==0:
@@ -361,14 +447,17 @@ def checkWord(phenny,input):
         ret = True
   return ret
 
+def spaced(word):
+  return reduce(lambda x,y:x+y, map(lambda x: x+" ", word))
+
 def jumble(phenny,input):
   if phenny.jumble['run']:
-    phenny.say("jumble this: "+phenny.jumble['clue'])
+    phenny.say("jumble this: "+spaced(phenny.jumble['clue']))
     return
   genjumble(phenny,input)
   #print phenny.jumble['word']
   initjumble(phenny,input)
-  phenny.say("jumble this: "+phenny.jumble['clue'])
+  phenny.say("jumble this: "+spaced(phenny.jumble['clue']))
 jumble.commands=["jumble","scramble"]
 jumble.priority="low"
 jumble.thread=False
@@ -385,15 +474,31 @@ three.priority="low"
 three.thread=False
 
 def bend(phenny,input):
-  if phenny.bend['run']:
-    phenny.say("Find a word beginning with %s and ending in %s: " % phenny.bend['clue'])
-    return
-  genbend(phenny,input)
-  initbend(phenny,input)
+  if not phenny.bend['run']:
+    genbend(phenny,input)
+    initbend(phenny,input)
   phenny.say("Find a word beginning with %s and ending in %s: " % phenny.bend['clue'])
 bend.commands=["bend"]
 bend.priority="low"
 bend.thread=False
+
+def bank(phenny,input):
+  if not phenny.bank['run']:
+    genbank(phenny,input)
+    initbank(phenny,input)
+  phenny.say("Find the longest word within the power set of the letters %s" % phenny.bank['bank'])
+bank.commands=["bank"]
+bank.priority="low"
+bank.thread=False
+
+def hangman(phenny,input):
+  if not phenny.hang['run']:
+    genhang(phenny,input)
+    inithang(phenny,input)
+  phenny.say(genhangline(phenny))
+hangman.commands=["hang","hangman"]
+hangman.priority="low"
+hangman.thread=False
 
 def wordsplay(phenny, input): 
   if phenny.wordsplay['run']:
@@ -495,6 +600,16 @@ def jhof(phenny,input):
 jhof.commands=["jhof","jtop","jumblehof","jumbletop"]
 jhof.priority='low'
 
+def hhof(phenny,input):
+  total = phenny.hang['scores']
+  msg = "Total hangman scores: " 
+  ordered = sorted(total.items(), key=itemgetter(1), reverse=True)
+  for entry in ordered[:10]:
+    msg += entry[0]+": "+str(entry[1])+"; "
+  phenny.say(msg)
+hhof.commands=["hhof","htop","hangmanhof","hangmantop"]
+hhof.priority='low'
+
 def threehof(phenny,input):
   total = phenny.three['scores']
   msg = "Total 'three' scores: " 
@@ -514,6 +629,16 @@ def bendhof(phenny,input):
   phenny.say(msg)
 bendhof.commands=["bhof","btop","bendhof","bendtop"]
 bendhof.priority='low'
+
+def bankhof(phenny,input):
+  total = phenny.bank['scores']
+  msg = "Total 'bank' scores: " 
+  ordered = sorted(total.items(), key=itemgetter(1), reverse=True)
+  for entry in ordered[:10]:
+    msg += entry[0]+": "+str(entry[1])+"; "
+  phenny.say(msg)
+bankhof.commands=["bankhof","banktop"]
+bankhof.priority='low'
 
 def guessedBefore(phenny,input,exact=False):
   guesses = phenny.wordsplay['used']
@@ -554,6 +679,20 @@ def wouldbend(clue, word):
     return True
   return False
 
+def wouldbank(bank, word):
+  if re.match("^["+bank+"]*$", word.upper()):
+    return True
+  return False
+
+def solvebank(phenny, bank):
+  longest = ""
+  re_bank = re.compile("^["+bank+"]*$")
+  for word in wordlist:
+    if re_bank.match(word.upper()):
+      if len(word)>len(longest):
+        longest = word.upper()
+  return longest
+
 def jguess(phenny, input):
   if not phenny.jumble['run']:
     return
@@ -577,6 +716,80 @@ def jguess(phenny, input):
   elif (input in wordlist) and wouldjumble(input,word):
     phenny.say(nick+": Could be. But no.")
 
+def hangbuy(phenny, input):
+  if not phenny.hang['run']:
+    phenny.say("You do not have enough credits to buy this.")
+    return
+  nick = input.nick
+  input = input.upper()
+  if phenny.hang['fails'] >= 10:
+    phenny.say("Your money can't help you anymore, %s." % nick)
+    return
+  if not " " in input:
+    phenny.say(choice([
+      "Buy land, they're not making it anymore",
+      "Money will buy you a fine dog, but only love can make it wag its tail",
+      "If you want to feel rich, just count the things you have that money can't buy",
+      "Money can't buy you happiness, but it can buy you a yacht big enough to pull up right alongside it.",
+      "Fools build houses, and wise men buy them."]))
+    return
+  input = input[input.index(" ")+1:].upper().strip()
+  if len(input)>1:
+    phenny.say("That's out of stock, sorry.")
+    return
+  if input in phenny.hang['guessed']:
+    phenny.say("Ask your fellow players, they may have got a spare one.")
+    return
+  phenny.hang['guessed'][input] = True
+  if not input in phenny.hang['word']:
+    phenny.hang['fails'] += 1
+  else:
+    count = len(re.findall(input, phenny.hang['word']))
+    phenny.hang['left'] = phenny.hang['left']-count
+    phenny.hang['correct'][nick] = phenny.hang['correct'].get(nick,0) + 1
+  phenny.hang['bought'][nick] = phenny.hang['bought'].get(nick,0) + 1
+  phenny.say(genhangline(phenny))
+hangbuy.commands=["buy"]
+hangbuy.priority="low"
+hangbuy.thread=False
+
+def hangbought(phenny, input):
+  if not phenny.hang['run']:
+    phenny.say("An honest politician is one who, when he is bought, will stay bought.")
+    return
+  s = ""
+  for letter in sorted(phenny.hang['guessed']):
+    s+=letter + " " 
+  if s:
+    phenny.say("Already bought: "+s)
+  else:
+    phenny.say("All letters are still available.")
+hangbought.commands=["bought"]
+hangbought.priority="low"
+hangbought.thread=False
+
+def hangguess(phenny, input):
+  if not phenny.hang['run']:
+    return
+  nick = input.nick
+  input = input.upper().strip()
+  word = phenny.hang['word']
+  if input == word:
+    phenny.hang['run']=False
+    scores = phenny.hang['scores']
+    owngood = phenny.hang['correct'].get(nick,0)
+    owntotal = phenny.hang['bought'].get(nick,0)
+    fails = phenny.hang['fails']
+    if fails >= 10:
+      phenny.say("The corpse is correct. He is allowed to repay his debt to the king with these fine points.")
+    else:
+      value = (owntotal > 0) and max (int(phenny.hang['left'] * owngood / owntotal),1) or 1
+      scores[nick]=scores.get(nick,0)+value
+      phenny.say("The convict is correct. Free 'em all, and hand him %i fine point%s, for a total of %i." % (value, (value!=1) and "s" or "", scores.get(nick,0)))
+    yamldump = open("hangman.yaml",'w') #save teh permanent scores
+    yamldump.write(yaml.dump(phenny.hang))
+    yamldump.close()
+  
 def threeguess(phenny, input):
   if not phenny.three['run']:
     return
@@ -598,6 +811,8 @@ def threeguess(phenny, input):
 def bendguess(phenny, input):
   override = False
   if not phenny.bend['run']:
+    if not 'lastplayer' in phenny.bend:
+      return
     now = time.time()
     if phenny.bend['override'] + 30 < now:
       return
@@ -627,6 +842,47 @@ def bendguess(phenny, input):
     phenny.bend['lastword']   = input
     yamldump = open("bend.yaml",'w') #save teh permanent scores
     yamldump.write(yaml.dump(phenny.bend))
+    yamldump.close()
+
+def bankguess(phenny, input):
+  override = False
+  if not phenny.bank['run']:
+    now = time.time()
+    if phenny.bank['override'] + 30 < now:
+      return
+    override = True
+  nick = input.nick
+  input = input.upper().strip()
+  if not input in wordlist:
+    return
+  bank = phenny.bank['bank']
+  if wouldbank(bank, input):
+    if override and len(phenny.bank['lastword'])>=len(input):
+      return
+    phenny.bank['run']=False
+    phenny.bank['override']=time.time()
+    scores = phenny.bank['scores']
+    bonus = 1
+    for letter in bank:
+      if not letter in input:
+        print "Fail",letter,bank,input
+        bonus = 0
+        break
+    value = 1 + max(0,len(input) - len(bank)) + bonus
+    scores[nick]=scores.get(nick,0)+value
+    if override:
+      other = phenny.bank['lastplayer']
+      rvalue = 1 + max(0,len(phenny.bank['lastword']) - len(phenny.bank['lastbank']))
+      scores[other]=scores.get(other,0)-rvalue
+      phenny.say("%s bests %s with %s and grabs all %i points for a total of %s. %s" % (nick, other, input, value, scores[nick], bonus and "BONUS BANK!" or choice(("Bank!", "Bank! Bank!", "Bonk!", "Boink."))))
+    else:
+      phenny.say(input+" is correct and "+nick+" scores "+str(value)+" points for a total of "+str(scores[nick])+". %s." % (bonus and "Noice" or choice(("Indeed","Hum","Bizarre","Hear hear","Sneaky"))))
+    phenny.bank['lastvalue']  = value
+    phenny.bank['lastplayer'] = nick
+    phenny.bank['lastword']   = input
+    phenny.bank['lastbank']   = bank
+    yamldump = open("bank.yaml",'w') #save teh permanent scores
+    yamldump.write(yaml.dump(phenny.bank))
     yamldump.close()
 
 def checkBested(phenny, input, nick):
@@ -660,6 +916,8 @@ def wguess(phenny,input):
   jguess(phenny,input)     #we don't have to check regexes twice.
   threeguess(phenny,input) #nor have we to check regexes thrice.
   bendguess(phenny,input)  #nor have we to check regexes fource.
+  bankguess(phenny,input)  #nor have we to check regexes fifce.
+  hangguess(phenny,input)  #nor have we to check regexes sixce.
   if not phenny.wordsplay['run']:
     return
   nick = input.nick
@@ -694,6 +952,14 @@ def threereset(phenny, input):
 threereset.commands=["3reset","threereset"]
 threereset.priority='low'
 
+def hangreset(phenny, input):
+  if phenny.hang['run']==True:
+    phenny.hang['run']=False
+    phenny.say("As you wish. Your acquittal was the word %s." % (phenny.hang['word']))
+hangreset.commands=["hreset","hangreset"]
+hangreset.priority='low'
+hangreset.thread=False
+
 def bendreset(phenny, input):
   if phenny.bend['run']==True:
     phenny.bend['run']=False
@@ -701,6 +967,15 @@ def bendreset(phenny, input):
     phenny.bend['solve']=""
 bendreset.commands=["breset","bendreset"]
 bendreset.priority='low'
+
+def bankreset(phenny, input):
+  if phenny.bank['run']==True:
+    phenny.bank['run']=False
+    phenny.say("As you wish. One best possible solution was %s." % solvebank(phenny, phenny.bank['bank'])) 
+  elif 'lastbank' in phenny.bank:
+    phenny.say("One best possible solution was %s." % solvebank(phenny, phenny.bank['lastbank'])) 
+bankreset.commands=["sbank", "solvebank", "bankreset"]
+bankreset.priority='low'
 
 def striphtml(str):
   ret = re.sub('\<.*?\>','',str)

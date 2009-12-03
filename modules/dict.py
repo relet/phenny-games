@@ -63,10 +63,10 @@ def dict(phenny, input):
      phenny.msg(input.sender, input.nick + ": Mu.")
      return
 
-   searchCounter(term, 4)
-   SearchDict(phenny, wordnet_uri, parse_wordnet, term).start()
-   SearchDict(phenny, tfd_uri, parse_tfd, term).start()
-   SearchDict(phenny, encarta_uri, parse_encarta, term).start()
+   searchCounter(term, 1)
+   #SearchDict(phenny, wordnet_uri, parse_wordnet, term).start()
+   #SearchDict(phenny, tfd_uri, parse_tfd, term).start()
+   #SearchDict(phenny, encarta_uri, parse_encarta, term).start()
    SearchDict(phenny, lexicus_uri, parse_lexicus, term).start()
    while searchCounter(term):
      time.sleep(1)
