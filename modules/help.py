@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -*-
 topics = {
   "defind"   :"Identify the correct definition among all given suggestions. Commands: .defind .def .select",
   "food"     :"Food is important, when you spend your time in the channels. Commands: food",
+  "hangman"  :"Guess words, one notch at a time. Commands: .hang .hreset .buy .htop .bought",
   "history"  :"A multiplayer game. Order historical dates on a timeline. More: hrules Commands: .history .hrun .card .cards .call .hquit",
   "jumble"   :"Descramble English words. Commands: .jumble .jtop",
   "roulette" :"Play Russian roulette. Commands: .load .spin .die",
@@ -10,8 +12,23 @@ topics = {
   "lookup"   :"You can look up words using the commands: .wiki .dict .encarta .wordnet .check",
   "three"    :"Find words containing given consonants: .three .3top .3reset",
   "bend"     :"Find words beginning and ending with the given letters: .bend .btop .breset",
+  "bank"     :"Find the longest word in the power set of the given letters: .bank .banktop .sbank",
+  "tags"     :"Assign (matching or non-matching) adjectives to topics that others propose: trules .tags .trun .tquit .discuss .that's .tag .pass",
 }
 commands = {
+  ".hang"    :"Start a game of hangman",
+  ".hreset"  :"Reset the current game of hangman",
+  ".buy"     :"Buy a hangman letter. But beware, you may buy it with your life.",
+  ".bought"  :"Display the already bought letters.",
+  ".htop"    :"Show the current hangman highscore list.",
+  ".tags"    :"Join a game of .tags",
+  ".trun"    :"Start a game of .tags with the current players",
+  ".discuss" :"Propose a topic to propose cards about.",
+  ".that's"  :"Play a card matching (OR NOT!) the currently proposed topic.",
+  ".tquit"   :"Quit the current game of .tags",
+  "trules"   :"You will be dealt adjectives and a rule. One player must announce a topic, then everyone plays an adjective according to his secret rule. In the second round, players must tag the cards they think match the topic by entering the displayed code. First come, first serve. Or .pass. Points are dealt for correct guesses, and correctly tagged cards.",
+  ".tag"     :".tag code: Tag a card in a game of .tags",
+  ".pass"    :"Do not tag any card in a game of .tags",
   ".three"   :"A sequence of 3-5 consonants. Find a word starting with these in order or reverse order. Syntax: .three #number where #number is the number of consonants to play with.",
   ".food"    :"Serves you a random sandwich. Real food is only served in real life.",
   "hrules"   :"Cards contain historical events. Players receive 8 cards. One card is dealt. Players take turns to add one card to the timeline, or 'call' if they believe the timeline is wrong. Two cards penalty for calling if the timeline is correct, or for the previous player if incorrect. Play all cards to win.",
@@ -29,6 +46,9 @@ commands = {
   ".bend"    :"Displays a new word to complete. Type your guess. After the last correct guess, you have 30 seconds to improve.",
   ".btop"    :"Display the high score list for bend",
   ".breset"  :"Solve the last bend puzzle.",
+  ".bank"    :"Displays a new letter bank. Type your guess. After the last correct guess, you have 30 seconds to improve.",
+  ".banktop" :"Display the high score list for bank",
+  ".sbank"   :"Solve and end the current bank puzzle, or show the solution for the last puzzle.",
   ".load"    :"Loads a revolver. Parameters '.load #b #c' where #b is a number of bullets, #c a number of chambers in the cylinder.",
   ".spin"    :"Spins the cylinder to a random position.",
   ".die"     :"Pulls the trigger. You may die if a bullet is in the current chamber.",
@@ -54,6 +74,7 @@ commands = {
   ".def"     :"Submits a definition for the currently proposed word. Please do so via private message to the bot",
   ".select"  :"Selects the one definition which you consider to be correct.",
 }
+
 def help(phenny, input):
   words = input.split()
   if len(words)<2:
@@ -70,7 +91,6 @@ def help(phenny, input):
       phenny.say(commands[topic])
     else:
       phenny.say("I can't help you with that. Some help pages are still missing.")
-
 help.commands = ['help','man','usage']
 help.priority = 'low'
 help.thread = False
